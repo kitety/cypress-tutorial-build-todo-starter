@@ -2,5 +2,48 @@ describe("list items", () => {
   beforeEach(() => {
     cy.seedAndVisit();
   });
-  it.only("properly displays completed items", () => {});
+  it("properly displays completed items", () => {
+    cy.get(".todo-list li")
+      .filter(".completed")
+      .should("have.length", 1)
+      .and("contain", "milk")
+      .find(".toggle")
+      .should("be.checked");
+  });
+  it("should remaining todos in the footer", () => {
+    cy.get(".todo-count").should("contain", 2);
+  });
+  it("remove a todo", () => {
+    cy.route({
+      url: "/api/todos/1",
+      method: "DELETE",
+      status: 200,
+      response: {},
+    });
+    cy.get(".todo-list li").as("list");
+    cy.get("@list").first().find(".destroy").invoke("show").click();
+    cy.get("@list").should("have.length", 2).and("not.contain", "hello");
+    // const list = cy.get(".todo-list li");
+    // list.first().find(".destroy").invoke("show").click();
+
+    //  cy.get(".todo-list li").first().find(".destroy").invoke("show").click();
+
+    // hover 才可以click btn
+    // cy.get(".todo-list li").first().find(".destroy").click({ force: true });
+  });
+  it("marks an incomplete item completed", () => {
+    cy.fixture("todos").then((todos) => {
+      const target = Cypress._.head(todos);
+      cy.route(
+        "PUT",
+        `/api/todos/${target.id}`,
+        Cypress._.merge(target, { isComplete: true })
+      );
+    });
+    cy.get(".todo-list li").first().as("first-todo");
+
+    cy.get("@first-todo").find(".toggle").click().should("be.checked");
+    cy.get("@first-todo").should("have.class", "completed");
+    cy.get(".todo-count").should("contain", 1);
+  });
 });

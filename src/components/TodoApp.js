@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Route } from "react-router-dom";
 import TodoForm from "./TodoForm";
 import TodoList from "./TodoList";
 import Footer from "./Footer";
-import { saveTodo, loadTodo } from "../lib/service";
+import { saveTodo, loadTodo, destroyTodo, updateTodo } from "../lib/service";
 export default class TodoApp extends Component {
   constructor(props) {
     super(props);
@@ -14,6 +14,8 @@ export default class TodoApp extends Component {
     };
     this.handleNewTodoChange = this.handleNewTodoChange.bind(this);
     this.handleTodoSubmit = this.handleTodoSubmit.bind(this);
+    this.handleDelete = this.handleDelete.bind(this);
+    this.handleUpdate = this.handleUpdate.bind(this);
   }
   handleNewTodoChange(e) {
     this.setState({ currentTodo: e.target.value });
@@ -47,8 +49,26 @@ export default class TodoApp extends Component {
         this.setState({ error: true });
       });
   }
+  handleDelete(id) {
+    destroyTodo(id).then(() => {
+      this.setState({
+        todos: this.state.todos.filter((i) => i.id !== id),
+      });
+    });
+  }
+  handleUpdate(id) {
+    const target = this.state.todos.find((i) => i.id === id);
+    const update = { ...target, isComplete: !target.isComplete };
+    updateTodo(update).then(({ data }) => {
+      const todos = this.state.todos.map((i) => (i.id === data.id ? data : i));
+      this.setState({
+        todos,
+      });
+    });
+  }
 
   render() {
+    const remaining = this.state.todos.filter((d) => !d.isComplete);
     return (
       <Router>
         <div>
@@ -62,9 +82,13 @@ export default class TodoApp extends Component {
             />
           </header>
           <section className="main">
-            <TodoList todos={this.state.todos} />
+            <TodoList
+              todos={this.state.todos}
+              handleDelete={this.handleDelete}
+              handleUpdate={this.handleUpdate}
+            />
           </section>
-          <Footer />
+          <Footer remaining={remaining} />
         </div>
       </Router>
     );
